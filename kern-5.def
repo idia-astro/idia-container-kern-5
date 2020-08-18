@@ -2,20 +2,36 @@ Bootstrap: debootstrap
 MirrorURL: http://archive.ubuntu.com/ubuntu/
 OSVersion: bionic
 Include: software-properties-common
+%labels
+
+    APPLICATION_NAME Ubuntu LTS + kernsuite + CubiCal + PyBDSF + Montage
+    OS_VERSION 18.04 
+
+    SYSTEM_NAME iLifu
+    SYSTEM_SINGULARITY_VERSION 2.6
+    SYSTEM_URL http://www.ilifu.ac.za
+
+    AUTHOR_NAME Jeremy Smith
+    AUTHOR_EMAIL jeremy@idia.ac.za
 
 %environment
 
     export LC_ALL=C
-    export SOFTWARE_PATH=/software
+    export SOFTWARE_PATH=/opt
     export PATH=$SOFTWARE_PATH/Montage/bin:$PATH
+        
 
 %post
+    ##############################################################################
+    # Setting up Environment  
+    # Create Installation Directories and export paths. This is needed as part of post.
+    # %environment scriptlet does not define these paths during %post, only after.
+    mkdir -p /opt
+    export SOFTWARE_PATH=/opt
+    ###############################################################################
     
     # Create Installation Directories and export paths. This is needed as part of post.
     # %environment scriptlet does not define these paths during %post, only after.
-    mkdir -p /software/ /installer
-    export INSTALLER_PATH=/installer
-    export SOFTWARE_PATH=/software
 
     apt-get update -y
     apt-get install -y wget vim apt-utils wget git
@@ -50,21 +66,19 @@ Include: software-properties-common
     lofarbeam-dev carta-remote libelementresponse3 libstationresponse3 \
     python3-nifty
 
-    apt-get -y install python-pip
+    apt-get install -y python-pip cmake
     pip install ipykernel
-    pip install atpy psutil katdal msutils parseltongue peasoup pyfftw pymonetdb attrdict blitz cub gsm astro-tigger astro-tigger-lsm cubical virtualenv
-    pip install --no-cache-dir tensorflow
-    pip install cubical virtualenv
-
+    pip install atpy psutil katdal msutils parseltongue peasoup pyfftw pymonetdb attrdict blitz cub gsm astro-tigger astro-tigger-lsm virtualenv
+    pip install tensorflow
+    
     apt-get -y install python3-pip
     pip3 install presto
-
-    apt-get install -y cmake
+    pip3 install git+https://github.com/ratt-ru/CubiCal.git@1.4.0
 
     # Installation of PyBDSF
     apt-get install -y libboost-python-dev libboost-numpy-dev python-setuptools gfortran build-essential
     pip install --upgrade setuptools numpy scipy pyfits pywcs
-    cd $INSTALLER/
+    cd $SOFTWARE_PATH
     git clone https://github.com/lofar-astron/PyBDSF.git
     cd PyB*
     python setup.py install
@@ -75,9 +89,6 @@ Include: software-properties-common
     cd Montage
     make
 
-    # Create /users to bind home directories into the container.
-    mkdir -p /users /scratch /data
-
     # Clean-up
     apt-get clean
     apt-get autoclean
@@ -85,7 +96,7 @@ Include: software-properties-common
 %runscript
 if [ $# -eq 0 ]; then
 	echo "The following Python modules are installed in this image:"
-        pip freeze
+        pip3 freeze
         echo "Example usage: singularity.simg [command] [args] [options]"
 else
         exec "$@"
